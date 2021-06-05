@@ -11,10 +11,10 @@ const connection = mysql.createConnection({
 
 connection.connect((err) => {
     if (err) throw err;
-    runSearch();
+    runEmployeeSearch();
   });
   
-  const runSearch = () => {
+  const runEmployeeSearch = () => {
     inquirer
       .prompt({
         name: 'action',
@@ -72,7 +72,7 @@ connection.connect((err) => {
               `Position: ${position} || Song: ${song} || Year: ${year}`
             );
           });
-          runSearch();
+          runEmployeeSearch();
         });
       });
   };
@@ -82,7 +82,7 @@ connection.connect((err) => {
       'SELECT artist FROM top5000 GROUP BY artist HAVING count(*) > 1';
     connection.query(query, (err, res) => {
       res.forEach(({ artist }) => console.log(artist));
-      runSearch();
+      runEmployeeSearch();
     });
   };
   
@@ -121,7 +121,7 @@ connection.connect((err) => {
               `Position: ${position} || Song: ${song} || Artist: ${artist} || Year: ${year}`
             );
           });
-          runSearch();
+          runEmployeeSearch();
         });
       });
   };
@@ -146,7 +146,7 @@ connection.connect((err) => {
             } else {
               console.error(`No results for ${answer.song}`);
             }
-            runSearch();
+            runEmployeeSearch();
           }
         );
       });
@@ -176,7 +176,7 @@ connection.connect((err) => {
             );
           });
   
-          runSearch();
+          runEmployeeSearch();
         });
       });
   };
