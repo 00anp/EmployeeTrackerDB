@@ -1,0 +1,25 @@
+{
+  "name": "employeetrackerdb",
+  "version": "1.0.0",
+  "description": "",
+  "main": "Server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/00anp/EmployeeTrackerDB.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/00anp/EmployeeTrackerDB/issues"
+  },
+  "homepage": "https://github.com/00anp/EmployeeTrackerDB#readme",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "inquirer": "^8.1.0",
+    "mysql": "^2.18.1"
+  }
+}

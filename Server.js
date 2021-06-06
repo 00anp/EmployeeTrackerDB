@@ -1,5 +1,6 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
+const cTable = require("console.table");
 
 const connection = mysql.createConnection({
     host: 'localhost',
@@ -20,34 +21,44 @@ connection.connect((err) => {
         name: 'action',
         type: 'rawlist',
         message: 'What would you like to do?',
-        choices: [
-          'Find songs by artist',
-          'Find all artists who appear more than once',
-          'Find data within a specific range',
-          'Search for a specific song',
-          'Find artists with a top song and top album in the same year',
-        ],
+        choices: ["View all departments.", "View all employees.", "View all employees by department.", "View all employees by manager.", "Add employee.", "Remove employee.", "Update employee role.", "Update employee manager.", "End session."],
       })
       .then((answer) => {
         switch (answer.action) {
-          case 'Find songs by artist':
-            artistSearch();
+          case 'View all departments.':
+            viewDepartments();
             break;
   
-          case 'Find all artists who appear more than once':
-            multiSearch();
+          case 'View all employees.':
+            viewEmployees();
             break;
   
-          case 'Find data within a specific range':
-            rangeSearch();
+          case 'View all employees by department.':
+            viewEmployeesByDeparment();
             break;
   
-          case 'Search for a specific song':
-            songSearch();
+          case 'View all employees by manager.':
+            viewEmployeesByManager();
             break;
   
-          case 'Find artists with a top song and top album in the same year':
-            songAndAlbumSearch();
+          case 'Add employee.':
+            addEmployee();
+            break;
+          
+          case 'Remove employee.':
+            removeEmployee();
+            break;
+
+          case 'Update employee role.':
+            updateEmployeeRole();
+            break;
+            
+          case 'Update employee manager.':
+            updateEmployeeManager();
+            break;
+            
+          case "End session.":
+            endSession();
             break;
   
           default:
@@ -57,126 +68,110 @@ connection.connect((err) => {
       });
   };
   
-  const artistSearch = () => {
-    inquirer
-      .prompt({
-        name: 'artist',
-        type: 'input',
-        message: 'What artist would you like to search for?',
-      })
-      .then((answer) => {
-        const query = 'SELECT position, song, year FROM top5000 WHERE ?';
-        connection.query(query, { artist: answer.artist }, (err, res) => {
-          res.forEach(({ position, song, year }) => {
-            console.log(
-              `Position: ${position} || Song: ${song} || Year: ${year}`
-            );
-          });
+  const viewDepartments = () => {
+        connection.query("Select id, dept_name, utilized_budget FROM department", (err, res) => {
+          if (err) throw err;
+          console.table('Departments', res);
           runEmployeeSearch();
         });
-      });
-  };
-  
-  const multiSearch = () => {
-    const query =
-      'SELECT artist FROM top5000 GROUP BY artist HAVING count(*) > 1';
+      };
+    
+  const viewEmployees = () => {
+    let query = "SELECT employee.id, employee.first_name, employee.last_name, department.name, employee.salary, roles.title, manager.manager_name ";
+    query += "FROM employee "; 
+    query += "INNER JOIN department ON employee.department = department.name "; 
+    query += "INNER JOIN roles ON department.id = roles.department_id ";
+    query += "LEFT JOIN manager ON employee.manager_id = manager.id ";
+    
     connection.query(query, (err, res) => {
-      res.forEach(({ artist }) => console.log(artist));
-      runEmployeeSearch();
-    });
+        console.table('All Employees', res);
+        runEmployeeSearch()
+      })
+
+  };
+    
+  
+  const viewEmployeesByDeparment = () => {
+    let query = "SELECT department.name, employee.id, employee.first_name, employee.last_name ";
+    query += "FROM department ";
+    query += "INNER JOIN employee ON employee.department = department.name ";
+    query += "ORDER BY department.name";
+    
+    connection.query(query, (err, res) => {
+      console.table('Employees By Department', res);
+      runEmployeeSearch()
+      })    
   };
   
-  const rangeSearch = () => {
+  const viewEmployeesByManager = () => {
+    let query = "SELECT manager.id, manager.manager_name, employee.first_name, employee.last_name ";
+    query += "FROM manager ";
+    query += "INNER JOIN employee ON manager.id = employee.manager_id ";
+    query += "ORDER BY manager.manager_name";
+    connection.query(query, (err, res) => {
+      console.table('Employees By Manager', res);
+      runEmployeeSearch()
+      })
+  };
+  
+  const addEmployee = () => {
     inquirer
       .prompt([
         {
-          name: 'start',
-          type: 'input',
-          message: 'Enter starting position: ',
-          validate(value) {
-            if (isNaN(value) === false) {
-              return true;
-            }
-            return false;
-          },
-        },
+        name: 'NewEmployeeFirstName',
+        type: 'input',
+        message: "What is the new employee's first name? (Required.)"
+      },
+      {
+        name: 'NewEmployeeLastName',
+        type: 'input',
+        message: "What is the new employee's last name? (Required.)"
+      },
+      {
+        name: 'NewEmployeeDepartment',
+        type: 'list',
+        message: "What is the new employee's department? (Required.)",
+        choices: ['Accounting', 'Marketing', 'Collections', 'Quotes', 'Sales']
+      },
+      {
+        name: 'NewEmployeeSalary',
+        type: 'input',
+        message: "What is the new employee's Salary? (Required.)"
+      },
+      {
+        name: 'NewEmployeeManager',
+        type: 'Choices',
+        message: "Who is the new employee's manager? (Required.)",
+        choices: ['Bruce Wayne']
+      },
+      {
+        name: 'NewEmployeeRole',
+        type: 'Choices',
+        message: "What is the new employee's role? (Required.)",
+        choices: ['Accountant', 'Market Researcher', 'Collections Agent', 'QBS', 'Outside Sales']
+      },
+    ])
+  
+      .then((answer) => {
+
+        connection.query(query, 
+          "INSERT INTO employee SET ?",
         {
-          name: 'end',
-          type: 'input',
-          message: 'Enter ending position: ',
-          validate(value) {
-            if (isNaN(value) === false) {
-              return true;
-            }
-            return false;
-          },
-        },
-      ])
-      .then((answer) => {
-        const query =
-          'SELECT position,song,artist,year FROM top5000 WHERE position BETWEEN ? AND ?';
-        connection.query(query, [answer.start, answer.end], (err, res) => {
-          res.forEach(({ position, song, artist, year }) => {
-            console.log(
-              `Position: ${position} || Song: ${song} || Artist: ${artist} || Year: ${year}`
-            );
-          });
+          first_name: answer.NewEmployeeFirstName,
+          last_name: answer.NewEmployeeLastName,
+          department: answer.NewEmployeeDepartment,
+          salary: answer.NewEmployeeSalary,
+          roles_id: NewEmployeeRole,
+          manager_id: NewEmployeeManager
+         }, (err, res) => {
+          if (err) throw err;
+          console.log(res.affectedRows + " employee added!\n");
           runEmployeeSearch();
         });
       });
   };
-  
-  const songSearch = () => {
-    inquirer
-      .prompt({
-        name: 'song',
-        type: 'input',
-        message: 'What song would you like to look for?',
-      })
-      .then((answer) => {
-        console.log(answer.song);
-        connection.query(
-          'SELECT * FROM top5000 WHERE ?',
-          { song: answer.song },
-          (err, res) => {
-            if (res[0]) {
-              console.log(
-                `Position: ${res[0].position} || Song: ${res[0].song} || Artist: ${res[0].artist} || Year: ${res[0].year}`
-              );
-            } else {
-              console.error(`No results for ${answer.song}`);
-            }
-            runEmployeeSearch();
-          }
-        );
-      });
-  };
-  
-  const songAndAlbumSearch = () => {
-    inquirer
-      .prompt({
-        name: 'artist',
-        type: 'input',
-        message: 'What artist would you like to search for?',
-      })
-      .then((answer) => {
-        let query =
-          'SELECT top_albums.year, top_albums.album, top_albums.position, top5000.song, top5000.artist ';
-        query +=
-          'FROM top_albums INNER JOIN top5000 ON (top_albums.artist = top5000.artist AND top_albums.year ';
-        query +=
-          '= top5000.year) WHERE (top_albums.artist = ? AND top5000.artist = ?) ORDER BY top_albums.year, top_albums.position';
-  
-        connection.query(query, [answer.artist, answer.artist], (err, res) => {
-          console.log(`${res.length} matches found!`);
-          res.forEach(({ year, position, artist, song, album }, i) => {
-            const num = i + 1;
-            console.log(
-              `${num} Year: ${year} Position: ${position} || Artist: ${artist} || Song: ${song} || Album: ${album}`
-            );
-          });
-  
-          runEmployeeSearch();
-        });
-      });
-  };
+
+const endSession = () => {
+    console.log("Session ended.");
+    connection.end();
+};
